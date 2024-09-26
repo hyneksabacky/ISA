@@ -10,10 +10,10 @@ rebuild:
 all: $(TARGET)
 
 $(TARGET): $(TARGET).cpp
-	$(CC) $(CFLAGS) $(TARGET).cpp -o $(TARGET) -lpcap
+	$(CC) $(CFLAGS) $(TARGET).cpp -o $(TARGET)
 
 debug: 
-	$(CC) $(CFLAGS) -DDEBUG $(TARGET).cpp -o debug -lpcap
+	$(CC) $(CFLAGS) -DDEBUG $(TARGET).cpp -o debug
 
 clean:
 	$(RM) $(TARGET) debug

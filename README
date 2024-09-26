@@ -1,0 +1,126 @@
+SOUBOR: 
+    mytftpclient.cpp
+NÁZEV: 
+    TFTP client
+AUTOR: 
+    Hynek Šabacký (xsabac02)
+
+CÍL:
+    Tento program je TFTP client. Slouží pro přenos souborů z a na TFTP server.
+
+FUNKCIONALITA:
+    Program je spouštěn bez parametrů. Jeho primární funkce je přenos souborů z a na TFTP
+    server. Po spuštění má uživatel k dispozici interaktivní příkazovou řádku, do které 
+    může zadávat příkazy pro řízení TFTP přenosů. Příkazy jsou ve tvaru argumentů. Během 
+    přenosu se uživateli vypisují zprávy na stdout, které ho informují o stavu. Tyto zprávy 
+    jsou ve tvaru: [<rok>-<měsíc>-<den> <čas>] <zpráva>. Program se ukončuje pomoci ctrl-C.
+    Jestliže uživatel nechá prázdný řádek a zadá ctrl-D ukončí to program také a jestliže
+    zapíše příkaz tak ho může odeslat dvojitým stisknutím ctrl-D. To ale způsobí, že se
+    příkaz provede a poté se program ukončí.
+
+POUŽITÍ:
+    Spuštění:
+        ./mytftpclient
+
+    Interaktivní terminál:
+        >-R/W -d adresar/soubor -t timeout -s velikost -a adresa,port -c mód -m
+
+        -R nebo parametr -W (povinný)
+            Pokud bude zadán parametr -R, bude se jednat o čtení souboru ze serveru. Pokud bude 
+            zadán parametr -W, bude se jednat o zápis souboru na server. Přítomnost obou 
+            parametrů v rámci jednoho příkazu je vyloučena.
+        -d (povinný)
+            soubor určuje soubor, který bude klient z/na server přijímat/odesílat. adresar 
+            specifikuje absolutní cestu kam/odkud se má soubor přenést. 
+        -t (nepovinný)
+            timeout v sekundách určuje, jaká je hodnota timeout, kterou bude klient poptávat 
+            od serveru. Klient navrhuje, server může či nemusí akceptovat. Samotný timeout vyjadřuje 
+            dobu čekání serveru před retransmisí nepotvrzených dat. Pokud není parametr 
+            přítomen, tak se option nepoužije.
+        -s (nepovinný)
+            velikost specifikuje maximální velikost bloku v násobcích oktetů, které bude klient 
+            navrhovat pro přenos. Jako horní hranici, kterou klient odesílá, uvažujte nejmenší 
+            z MTU ze všech rozhraních, na které by klient mohl TFTP zprávu serveru odeslat (pozor, tedy 
+            potenicálně více než 512 B, co je v RFC).
+        -m (nepovinný) (NENAIMPLEMENTOVÁNO!!!)
+            klient si od serveru vyžádá skrz multicast option transfer dat pomocí multicastu.
+        -c (nepovinný)
+            mód, který může nabýt jen hodnot "ascii" (nebo "netascii") a "binary" (nebo "octet"), čímž 
+            klient specifikuje mód přenosu dat. Implicitně (bez přítomnosti argumentu) se uvažuje 
+            binární transfer. 
+        -a (nepovinný)
+            adresa je adresa serveru ve formátu IPv4 či IPv6 rozhraní, na němž má služba běžet (pokud 
+            není žádná uvedena, tak se implicitně uvažuje IPv4 localhost, tedy 127.0.0.1).
+            port je číslo portu, na kterém server naslouchá (pokud není uveden, je to implicitně 69). 
+            Pokud neuvedete parametr -a, uvažujte IPv4 127.0.0.1 a port 69. Pokud uvedete 
+            parametr -a, tak se držte poptávané syntaxe adresa,port. 
+            Může být uvedena pouze IP adresa, v tu chvíli se port nastaví implicitně na 69.
+            Pouze port vede na chybu.
+    
+    Pořadí parametrů může být jakékoli. Mezi parametry, ale i oddělovači (čárka) může být libovolné 
+    nenulové množství bílých znaků.
+
+UPŘESNĚNÍ FUNKCIONALITY:
+    V případě, že při option negotiation client dostane jíné hodnoty options než poslal
+    je vyhodnotí takto: tsize - jiná hodnota u zápisového požadavku je chyba
+                              - jiná hodnota u čtecího požadavku je přijata
+
+                        blksize - jestliže je přijatá hodnota nižší než odeslaná a zároveň je větší než 0,
+                                  je přijata. Ve všech ostatních případech nastane chyba.
+
+                        timeout - jestliže je přijatá jiná hodnota než byla zaslána, nastane chyba.
+
+    V případě chyby při čtecím požadavku není vytvořen žádný soubor. Čtecí požadavek také
+    nemůže přepsat již existující soubor. 
+    Když přijde neočekávaný blok ukončuje se přenos a je zaslán error paket
+    s číslem 4 (nelegální TFTP operace).
+    Jestliže při čtení nastane chyba, je vytvořený soubor smazán. Pokud je program ale ukončen 
+    předčasně, soubor na disku zůstává ve stavu v jakém s ním program skončil. Proto se doporučuje 
+    ukončovat program pomocí ctrl-D.
+    Rozšíření multicast v tomto řešení není naimplementováno.
+
+UKÁZKY VOLÁNÍ:
+    ./mytftpclient
+    > -W -d./mytftpclient.cpp 
+    ./mytftpclient
+    > -W -d./mytftpclient.cpp -a::1,69
+    ./mytftpclient
+    > -W -d./mytftpclient.cpp -a::1
+    ./mytftpclient
+    > -R -d./mytftpclient.cpp -a::1 -cnetascii -s999999
+    ./mytftpclient
+    > -R -d ./mytftpclient.cpp -a 127.0.0.1,69 -t 13 -s 500
+
+
+UKÁZKY VÝSTUPU:
+1)
+    ./mytftpclient
+    > -R -dmain.c
+    [2021-10-30 17:28:16.285] Requesting READ from server 127.0.0.1:69
+    [2021-10-30 17:28:16.294] Received block 1: 0 ... 512 of 987 B
+    [2021-10-30 17:28:16.299] Received block 2: 512 ... 987 of 987 B
+    [2021-10-30 17:28:16.305] Transfer finished successfully without errors
+    >
+
+2)
+    > -W -d ../test/test.txt
+    [2021-10-30 19:05:51.708] Requesting WRITE to server 127.0.0.1:69
+    [2021-10-30 19:05:51.711] Sending block 1:  0...512 B of 5607 B
+    [2021-10-30 19:05:51.712] Sending block 2:  512...1024 B of 5607 B
+    [2021-10-30 19:05:51.714] Sending block 3:  1024...1536 B of 5607 B
+    [2021-10-30 19:05:51.716] Sending block 4:  1536...2048 B of 5607 B
+    [2021-10-30 19:05:51.717] Sending block 5:  2048...2560 B of 5607 B
+    [2021-10-30 19:05:51.722] Sending block 6:  2560...3072 B of 5607 B
+    [2021-10-30 19:05:51.725] Sending block 7:  3072...3584 B of 5607 B
+    [2021-10-30 19:05:51.728] Sending block 8:  3584...4096 B of 5607 B
+    [2021-10-30 19:05:51.729] Sending block 9:  4096...4608 B of 5607 B
+    [2021-10-30 19:05:51.729] Sending block 10:  4608...5120 B of 5607 B
+    [2021-10-30 19:05:51.730] Sending block 11:  5120...5607 B of 5607 B
+    [2021-10-30 19:05:51.731] Transfer finished successfully without errors
+    >
+
+SOUBORY:
+    mytftpclient.cpp
+    Makefile
+    manual.pdf
+    README
